@@ -1,9 +1,11 @@
-const SeriesCard = ({ series }) => {
+const SeriesCard = ({ film }) => {
   return (
     <div className="series-card">
-      <img src={series.image} alt={series.title} />
-      <h3>{series.title}</h3>
-      <p>{series.description}</p>
+      <img src={film.image_url} alt={film.titre} />
+      <h3>{film.titre}</h3>
+      <p>{film.description}</p>
+      <p><strong>Genre:</strong> {film.genre}</p>
+      <p><strong>Année:</strong> {film.annee}</p>
     </div>
   );
 };
