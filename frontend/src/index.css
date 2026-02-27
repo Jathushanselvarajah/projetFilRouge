@@ -1,48 +1,106 @@
 body {
+  font-family: 'Arial', sans-serif;
+  background-color: #121212;
+  color: #ffffff;
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #111;
-  color: #fff;
+  padding: 0;
 }
 
 h1 {
   text-align: center;
-  margin: 20px 0;
+  margin: 2rem 0;
+  font-size: 2.5rem;
+  color: #e50914; 
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+  background-color: #1f1f1f;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+form input {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  width: 200px;
+}
+
+form button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #e50914;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+form button:hover {
+  background-color: #f6121d;
 }
 
 .series-list {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  padding: 0 2rem 2rem 2rem;
 }
 
 .series-card {
-  background-color: #1c1c1c;
-  width: 300px;
-  border-radius: 10px;
+  background-color: #1f1f1f;
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.3s;
-  padding: 10px 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .series-card:hover {
-  transform: scale(1.05);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.7);
 }
 
 .series-card img {
   width: 100%;
-  height: 350px;
+  height: 300px;
   object-fit: cover;
 }
 
 .series-card h3 {
-  margin: 10px;
+  margin: 0.5rem 1rem 0;
+  font-size: 1.2rem;
+  color: #ffffff;
 }
 
 .series-card p {
-  margin: 10px;
+  margin: 0.25rem 1rem 0.5rem;
   font-size: 0.9rem;
-  color: #ccc;
+  color: #cccccc;
+}
+
+.film-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  padding: 0 2rem 2rem 2rem;
+}
+
+.film-actions button {
+  margin: 0.5rem 0.5rem 1rem 1rem;
+  padding: 0.4rem 0.8rem;
+  background-color: #e50914;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.film-actions button:hover {
+  background-color: #f6121d;
 }
