@@ -16,7 +16,6 @@ projetFilRouge/
 
 ```bash
 cd backend
-cp .env.example .env   # Configurer vos variables
 npm install
 npm start
 ```
@@ -32,3 +31,7 @@ npm run dev
 ```
 
 → App disponible sur `http://localhost:5173`
+
+### Auteurs
+
+SELVARAJAH Jathushan & BAZELAIRE Colin Efrei
