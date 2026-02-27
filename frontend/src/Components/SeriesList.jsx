@@ -1,10 +1,10 @@
 import SeriesCard from "./SeriesCard";
 
-const SeriesList = ({ series }) => {
+const SeriesList = ({ films }) => {
   return (
     <div className="series-list">
-      {series.map((item) => (
-        <SeriesCard key={item.id} series={item} />
+      {films.map((film) => (
+        <SeriesCard key={film.id} film={film} />
       ))}
     </div>
   );
