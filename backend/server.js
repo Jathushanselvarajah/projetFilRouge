@@ -81,6 +81,11 @@ router.delete("/films/:id", (req, res) => {
 app.use("/api", router);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Serveur démarré sur le port ${PORT}`);
-});
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Serveur démarré sur le port ${PORT}`);
+  });
+}
+
+module.exports = { app, pool };
