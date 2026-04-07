@@ -1,6 +1,6 @@
 # Projet Fil Rouge
 
-Projet DevOps - API NodeJS + Frontend React
+Projet DevOps - API NodeJS + Frontend React | Cours Projet Pipeline - Efrei 2026
 
 ## Structure
 
@@ -32,6 +32,16 @@ npm run dev
 
 → App disponible sur `http://localhost:5173`
 
+### Avec Docker Compose
+
+```bash
+docker compose up -d
+docker exec api-films node migrations/migrate.js
+docker exec api-films node seeds/seed.js
+```
+
+→ MySQL + API lancés automatiquement
+
 ### Auteurs
 
-SELVARAJAH Jathushan & BAZELAIRE Colin Efrei
+SELVARAJAH Jathushan & BAZELAIRE Colin
