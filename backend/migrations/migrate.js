@@ -1,13 +1,5 @@
-const mysql = require("mysql2");
-require("dotenv").config();
-
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
+const { getConfig } = require("../src/config/env");
+const { closeDatabasePool, createDatabasePool } = require("../src/db/pool");
 
 const createTable = `
 CREATE TABLE IF NOT EXISTS films (
@@ -17,14 +9,23 @@ CREATE TABLE IF NOT EXISTS films (
   annee INT,
   description TEXT,
   image_url VARCHAR(500),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )`;
 
-pool.query(createTable, (err) => {
-  if (err) {
-    console.error("Erreur migration :", err);
-  } else {
+async function migrate() {
+  const config = getConfig();
+  const pool = createDatabasePool(config.db);
+
+  try {
+    await pool.query(createTable);
     console.log("Table 'films' créée avec succès !");
+  } catch (error) {
+    console.error("Erreur migration :", error);
+    process.exitCode = 1;
+  } finally {
+    await closeDatabasePool(pool);
   }
-  process.exit();
-});
+}
+
+migrate();

@@ -1,13 +1,5 @@
-const mysql = require("mysql2");
-require("dotenv").config();
-
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
+const { getConfig } = require("../src/config/env");
+const { closeDatabasePool, createDatabasePool } = require("../src/db/pool");
 
 const films = [
   {
@@ -49,15 +41,21 @@ const films = [
 
 const query = "INSERT INTO films (titre, genre, annee, description, image_url) VALUES (?, ?, ?, ?, ?)";
 
-let count = 0;
-films.forEach((film) => {
-  pool.query(query, [film.titre, film.genre, film.annee, film.description, film.image_url], (err) => {
-    if (err) {
-      console.error(`Erreur ajout "${film.titre}" :`, err.message);
-    } else {
+async function seed() {
+  const config = getConfig();
+  const pool = createDatabasePool(config.db);
+
+  try {
+    for (const film of films) {
+      await pool.query(query, [film.titre, film.genre, film.annee, film.description, film.image_url]);
       console.log(`Film "${film.titre}" ajouté !`);
     }
-    count++;
-    if (count === films.length) process.exit();
-  });
-});
+  } catch (error) {
+    console.error("Erreur seed :", error);
+    process.exitCode = 1;
+  } finally {
+    await closeDatabasePool(pool);
+  }
+}
+
+seed();
