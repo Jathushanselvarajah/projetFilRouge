@@ -152,6 +152,65 @@ curl http://localhost:3000/api
 curl http://localhost:3000/api/films
 ```
 
+## Conteneurisation Docker
+
+### Backend
+
+Le backend est conteneurise avec `backend/Dockerfile`.
+
+L'image installe uniquement les dependances de production et lance l'API Express sur le port `3000`.
+
+Construire l'image backend :
+
+```bash
+docker build -t netflux-backend:local ./backend
+```
+
+Le backend a besoin d'une base MySQL. Pour lancer l'API avec sa base, utiliser Docker Compose :
+
+```bash
+cp .env.example .env
+docker compose --env-file .env up -d --build db backend
+docker compose --env-file .env exec -T backend npm run migrate
+docker compose --env-file .env exec -T backend npm run seed
+```
+
+Tester :
+
+```bash
+curl http://localhost:3000/api
+```
+
+### Frontend
+
+Le frontend est conteneurise avec `frontend/Dockerfile`.
+
+L'image compile l'application React/Vite, puis sert le dossier `dist` avec Nginx sur le port `80`.
+
+Construire l'image frontend :
+
+```bash
+docker build \
+  -t netflux-frontend:local \
+  --build-arg VITE_API_URL=http://localhost:3000/api \
+  ./frontend
+```
+
+Lancer le frontend :
+
+```bash
+docker run --rm \
+  --name netflux-frontend \
+  -p 8080:80 \
+  netflux-frontend:local
+```
+
+Tester :
+
+```text
+http://localhost:8080
+```
+
 ## Tests
 
 ### Backend
@@ -193,6 +252,8 @@ Parametres Jenkins :
 - `REMOTE_APP_DIR` : dossier du projet sur la VM backend
 - `SSH_CREDENTIALS_ID` : ID du credential SSH Jenkins
 - `RUN_SEED` : executer le seed apres migration
+- `DOCKERHUB_CREDENTIALS_ID` : ID du credential DockerHub Jenkins
+- `BACKEND_IMAGE` : image DockerHub backend, par defaut `jathus/netflux-backend`
 
 Etapes :
 
@@ -200,6 +261,7 @@ Etapes :
 - installation des dependances backend
 - execution des tests backend
 - validation de Docker Compose
+- delivery DockerHub : build et push de l'image backend
 - deploiement sur la VM backend en SSH
 - `docker compose up -d --build db backend`
 - migration
@@ -230,6 +292,8 @@ Parametres Jenkins :
 - `SSH_CREDENTIALS_ID` : ID du credential SSH Jenkins
 - `VITE_API_URL` : URL publique du backend, exemple `http://IP_BACK:3000/api`
 - `FRONTEND_PORT` : port public du frontend, par defaut `80`
+- `DOCKERHUB_CREDENTIALS_ID` : ID du credential DockerHub Jenkins
+- `FRONTEND_IMAGE` : image DockerHub frontend, par defaut `jathus/netflux-frontend`
 
 Etapes :
 
@@ -237,10 +301,26 @@ Etapes :
 - installation des dependances frontend
 - lint frontend
 - build Vite avec `VITE_API_URL`
+- delivery DockerHub : build et push de l'image frontend
 - packaging de `frontend/dist`
 - envoi du build sur la VM frontend
 - lancement d'un conteneur `nginx:alpine`
 - smoke test local et public
+
+### Credential DockerHub Jenkins
+
+Creer un credential Jenkins de type `Username with password` :
+
+- ID : `dockerhub-credentials`
+- Username : utilisateur DockerHub, par exemple `jathus`
+- Password : token DockerHub, pas le mot de passe du compte
+
+Les Jenkinsfiles utilisent ce credential pour executer `docker login`, puis publier les images :
+
+- `jathus/netflux-backend:latest`
+- `jathus/netflux-backend:<BUILD_NUMBER>`
+- `jathus/netflux-frontend:latest`
+- `jathus/netflux-frontend:<BUILD_NUMBER>`
 
 Prerequis VM frontend :
 

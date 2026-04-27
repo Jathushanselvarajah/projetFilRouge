@@ -13,6 +13,8 @@ pipeline {
         string(name: 'REMOTE_APP_DIR', defaultValue: '/home/azureuser/projetFilRouge', description: 'Dossier du projet sur la VM backend')
         string(name: 'SSH_CREDENTIALS_ID', defaultValue: 'azure-backend-ssh-key', description: 'ID Jenkins du credential SSH pour la VM backend')
         booleanParam(name: 'RUN_SEED', defaultValue: false, description: 'Executer le seed apres migration')
+        string(name: 'DOCKERHUB_CREDENTIALS_ID', defaultValue: 'dockerhub-credentials', description: 'ID Jenkins du credential DockerHub')
+        string(name: 'BACKEND_IMAGE', defaultValue: 'jathus/netflux-backend', description: 'Nom de l image DockerHub backend')
     }
 
     environment {
@@ -56,6 +58,30 @@ pipeline {
         stage('Validate Docker Compose') {
             steps {
                 sh 'docker compose --env-file .env.example config'
+            }
+        }
+
+        stage('Delivery DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: params.DOCKERHUB_CREDENTIALS_ID, usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_TOKEN')]) {
+                    sh """
+                        set -euo pipefail
+
+                        export DOCKER_CONFIG="\$WORKSPACE/.docker"
+                        mkdir -p "\$DOCKER_CONFIG"
+                        trap 'docker logout || true; rm -rf "\$DOCKER_CONFIG"' EXIT
+
+                        echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin
+
+                        docker build \\
+                          -t ${params.BACKEND_IMAGE}:latest \\
+                          -t ${params.BACKEND_IMAGE}:${env.BUILD_NUMBER} \\
+                          ./backend
+
+                        docker push ${params.BACKEND_IMAGE}:latest
+                        docker push ${params.BACKEND_IMAGE}:${env.BUILD_NUMBER}
+                    """
+                }
             }
         }
 

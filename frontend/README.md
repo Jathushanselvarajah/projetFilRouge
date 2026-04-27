@@ -1,16 +1,60 @@
-# React + Vite
+# Frontend Netflux
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend React/Vite de l'application Netflux.
 
-Currently, two official plugins are available:
+## Lancement local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Par defaut, le frontend consomme l'API backend sur :
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+http://localhost:3000/api
+```
 
-## Expanding the ESLint configuration
+Pour utiliser une autre API au build :
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+VITE_API_URL=http://IP_BACK:3000/api npm run build
+```
+
+## Conteneurisation Docker
+
+Le frontend est conteneurise avec une image multi-stage :
+
+- stage `build` : installe les dependances et compile l'application Vite
+- stage `runtime` : sert les fichiers statiques avec Nginx
+
+Construire l'image :
+
+```bash
+docker build \
+  -t netflux-frontend:local \
+  --build-arg VITE_API_URL=http://localhost:3000/api \
+  .
+```
+
+Lancer le conteneur :
+
+```bash
+docker run --rm \
+  --name netflux-frontend \
+  -p 8080:80 \
+  netflux-frontend:local
+```
+
+Tester dans le navigateur :
+
+```text
+http://localhost:8080
+```
+
+## Verification
+
+```bash
+npm run lint
+npm run build
+```
