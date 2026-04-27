@@ -157,8 +157,19 @@ REMOTE_SCRIPT
                               -v "\$REMOTE_APP_DIR/dist:/usr/share/nginx/html:ro" \\
                               nginx:alpine
 
-                            curl -fsS "http://127.0.0.1:\$FRONTEND_PORT" >/dev/null
-                            echo "Frontend deploye et joignable localement sur la VM."
+                            for attempt in 1 2 3 4 5; do
+                              if curl -fsS "http://127.0.0.1:\$FRONTEND_PORT" >/dev/null; then
+                                echo "Frontend deploye et joignable localement sur la VM."
+                                exit 0
+                              fi
+
+                              echo "Frontend pas encore joignable, tentative \$attempt/5..."
+                              sleep 2
+                            done
+
+                            docker ps -a --filter "name=\$FRONTEND_CONTAINER"
+                            docker logs "\$FRONTEND_CONTAINER" || true
+                            exit 1
 REMOTE_SCRIPT
                     """
                 }
@@ -167,7 +178,20 @@ REMOTE_SCRIPT
 
         stage('Public Smoke Test') {
             steps {
-                sh "curl -fsS http://${params.FRONTEND_HOST}:${params.FRONTEND_PORT} >/dev/null"
+                sh """
+                    set -euo pipefail
+
+                    for attempt in 1 2 3 4 5; do
+                      if curl -fsS http://${params.FRONTEND_HOST}:${params.FRONTEND_PORT} >/dev/null; then
+                        exit 0
+                      fi
+
+                      echo "Frontend public pas encore joignable, tentative \$attempt/5..."
+                      sleep 2
+                    done
+
+                    curl -fsS http://${params.FRONTEND_HOST}:${params.FRONTEND_PORT} >/dev/null
+                """
             }
         }
     }
