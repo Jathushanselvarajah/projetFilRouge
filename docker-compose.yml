@@ -4,10 +4,10 @@ services:
     container_name: mysql-films
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: movies
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-movies}
+      MYSQL_USER: ${MYSQL_USER:-app_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}
     volumes:
       - mysql_data:/var/lib/mysql
 
@@ -20,12 +20,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      PORT: 3000
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: movies
-      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-app_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}
+      DB_NAME: ${MYSQL_DATABASE:-movies}
+      DB_PORT: ${DB_PORT:-3306}
     depends_on:
       - db
 

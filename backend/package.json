@@ -7,7 +7,7 @@
     "start": "node server.js",
     "migrate": "node migrations/migrate.js",
     "seed": "node seeds/seed.js",
-    "test": "jest --forceExit --detectOpenHandles"
+    "test": "NODE_ENV=test jest --runInBand --forceExit --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
