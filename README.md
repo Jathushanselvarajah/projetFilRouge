@@ -236,6 +236,49 @@ Si des tests frontend sont ajoutes, les lancer avec la commande documentee dans 
 
 Deux jobs Jenkins sont prevus, tous les deux en mode `Pipeline from SCM`.
 
+### SonarQube
+
+SonarQube est utilise pour analyser la qualite du code frontend et backend.
+
+Lancer SonarQube en local sur la VM Jenkins :
+
+```bash
+docker run -d \
+  --name sonarqube \
+  --restart unless-stopped \
+  -p 9000:9000 \
+  sonarqube:community
+```
+
+Interface :
+
+```text
+http://192.168.64.7:9000
+```
+
+Creer deux projets manuels dans SonarQube :
+
+- `netflux-backend`
+- `netflux-frontend`
+
+Creer ensuite un token SonarQube et le stocker dans Jenkins Credentials :
+
+- Kind : `Secret text`
+- ID : `sonarqube-token`
+- Secret : token genere dans SonarQube
+
+Les analyses peuvent aussi etre lancees localement :
+
+```bash
+cd backend
+npm run sonar -- -Dsonar.host.url=http://192.168.64.7:9000 -Dsonar.token=TOKEN
+```
+
+```bash
+cd frontend
+npm run sonar -- -Dsonar.host.url=http://192.168.64.7:9000 -Dsonar.token=TOKEN
+```
+
 ### Job backend
 
 Configuration :
@@ -254,12 +297,15 @@ Parametres Jenkins :
 - `RUN_SEED` : executer le seed apres migration
 - `DOCKERHUB_CREDENTIALS_ID` : ID du credential DockerHub Jenkins
 - `BACKEND_IMAGE` : image DockerHub backend, par defaut `jathus/netflux-backend`
+- `SONAR_HOST_URL` : URL du serveur SonarQube
+- `SONAR_TOKEN_CREDENTIALS_ID` : ID Jenkins du token SonarQube
 
 Etapes :
 
 - checkout du repository
 - installation des dependances backend
 - execution des tests backend
+- analyse SonarQube backend
 - validation de Docker Compose
 - delivery DockerHub : build et push de l'image backend
 - deploiement sur la VM backend en SSH
@@ -294,6 +340,8 @@ Parametres Jenkins :
 - `FRONTEND_PORT` : port public du frontend, par defaut `80`
 - `DOCKERHUB_CREDENTIALS_ID` : ID du credential DockerHub Jenkins
 - `FRONTEND_IMAGE` : image DockerHub frontend, par defaut `jathus/netflux-frontend`
+- `SONAR_HOST_URL` : URL du serveur SonarQube
+- `SONAR_TOKEN_CREDENTIALS_ID` : ID Jenkins du token SonarQube
 
 Etapes :
 
@@ -301,6 +349,7 @@ Etapes :
 - installation des dependances frontend
 - lint frontend
 - build Vite avec `VITE_API_URL`
+- analyse SonarQube frontend
 - delivery DockerHub : build et push de l'image frontend
 - packaging de `frontend/dist`
 - envoi du build sur la VM frontend

@@ -16,6 +16,8 @@ pipeline {
         string(name: 'FRONTEND_PORT', defaultValue: '80', description: 'Port public du frontend sur la VM')
         string(name: 'DOCKERHUB_CREDENTIALS_ID', defaultValue: 'dockerhub-credentials', description: 'ID Jenkins du credential DockerHub')
         string(name: 'FRONTEND_IMAGE', defaultValue: 'jathus/netflux-frontend', description: 'Nom de l image DockerHub frontend')
+        string(name: 'SONAR_HOST_URL', defaultValue: 'http://192.168.64.7:9000', description: 'URL du serveur SonarQube')
+        string(name: 'SONAR_TOKEN_CREDENTIALS_ID', defaultValue: 'sonarqube-token', description: 'ID Jenkins du token SonarQube')
     }
 
     environment {
@@ -65,6 +67,22 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh "VITE_API_URL='${params.VITE_API_URL}' npm run build"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('frontend') {
+                    withCredentials([string(credentialsId: params.SONAR_TOKEN_CREDENTIALS_ID, variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            set -euo pipefail
+
+                            npm run sonar -- \\
+                              -Dsonar.host.url=${params.SONAR_HOST_URL} \\
+                              -Dsonar.token="\$SONAR_TOKEN"
+                        """
+                    }
                 }
             }
         }

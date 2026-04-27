@@ -15,6 +15,8 @@ pipeline {
         booleanParam(name: 'RUN_SEED', defaultValue: false, description: 'Executer le seed apres migration')
         string(name: 'DOCKERHUB_CREDENTIALS_ID', defaultValue: 'dockerhub-credentials', description: 'ID Jenkins du credential DockerHub')
         string(name: 'BACKEND_IMAGE', defaultValue: 'jathus/netflux-backend', description: 'Nom de l image DockerHub backend')
+        string(name: 'SONAR_HOST_URL', defaultValue: 'http://192.168.64.7:9000', description: 'URL du serveur SonarQube')
+        string(name: 'SONAR_TOKEN_CREDENTIALS_ID', defaultValue: 'sonarqube-token', description: 'ID Jenkins du token SonarQube')
     }
 
     environment {
@@ -51,6 +53,22 @@ pipeline {
             steps {
                 dir('backend') {
                     sh 'npm test'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend') {
+                    withCredentials([string(credentialsId: params.SONAR_TOKEN_CREDENTIALS_ID, variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            set -euo pipefail
+
+                            npm run sonar -- \\
+                              -Dsonar.host.url=${params.SONAR_HOST_URL} \\
+                              -Dsonar.token="\$SONAR_TOKEN"
+                        """
+                    }
                 }
             }
         }
