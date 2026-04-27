@@ -1,0 +1,141 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    parameters {
+        string(name: 'GIT_BRANCH', defaultValue: 'main', description: 'Branche Git a deployer')
+        string(name: 'FRONTEND_HOST', defaultValue: 'CHANGE_ME', description: 'IP publique ou DNS de la VM frontend Azure')
+        string(name: 'FRONTEND_USER', defaultValue: 'azureuser', description: 'Utilisateur SSH de la VM frontend')
+        string(name: 'REMOTE_APP_DIR', defaultValue: '/home/azureuser/projetFilRouge-frontend', description: 'Dossier de deploiement du frontend sur la VM')
+        string(name: 'SSH_CREDENTIALS_ID', defaultValue: 'azure-front-ssh-key', description: 'ID Jenkins du credential SSH pour la VM frontend')
+        string(name: 'VITE_API_URL', defaultValue: 'http://CHANGE_ME:3000/api', description: 'URL publique du backend, par exemple http://IP_BACK:3000/api')
+        string(name: 'FRONTEND_PORT', defaultValue: '80', description: 'Port public du frontend sur la VM')
+    }
+
+    environment {
+        GIT_REPO_URL = 'https://github.com/Jathushanselvarajah/projetFilRouge.git'
+        FRONTEND_CONTAINER = 'netflux-frontend'
+        FRONTEND_ARCHIVE = 'frontend-dist.tar.gz'
+    }
+
+    stages {
+        stage('Validate Parameters') {
+            steps {
+                script {
+                    if (!params.FRONTEND_HOST?.trim() || params.FRONTEND_HOST == 'CHANGE_ME') {
+                        error('FRONTEND_HOST doit contenir l IP publique ou le DNS de la VM frontend Azure.')
+                    }
+
+                    if (!params.VITE_API_URL?.trim() || params.VITE_API_URL.contains('CHANGE_ME')) {
+                        error('VITE_API_URL doit contenir l URL publique du backend, par exemple http://IP_BACK:3000/api.')
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                git branch: params.GIT_BRANCH, url: env.GIT_REPO_URL
+            }
+        }
+
+        stage('Install Frontend Dependencies') {
+            steps {
+                dir('frontend') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Lint Frontend') {
+            steps {
+                dir('frontend') {
+                    sh 'npm run lint'
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    sh "VITE_API_URL='${params.VITE_API_URL}' npm run build"
+                }
+            }
+        }
+
+        stage('Package Frontend') {
+            steps {
+                sh "rm -f ${env.FRONTEND_ARCHIVE}"
+                sh "tar -czf ${env.FRONTEND_ARCHIVE} -C frontend/dist ."
+            }
+        }
+
+        stage('Deploy Frontend On Azure VM') {
+            steps {
+                sshagent(credentials: [params.SSH_CREDENTIALS_ID]) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=accept-new ${params.FRONTEND_USER}@${params.FRONTEND_HOST} \\
+                          "REMOTE_APP_DIR='${params.REMOTE_APP_DIR}' bash -s" <<'REMOTE_SCRIPT'
+                            set -euo pipefail
+
+                            if ! command -v docker >/dev/null 2>&1; then
+                              echo "Docker est absent sur la VM frontend."
+                              exit 1
+                            fi
+
+                            mkdir -p "\$REMOTE_APP_DIR/dist"
+REMOTE_SCRIPT
+
+                        scp -o StrictHostKeyChecking=accept-new ${env.FRONTEND_ARCHIVE} ${params.FRONTEND_USER}@${params.FRONTEND_HOST}:${params.REMOTE_APP_DIR}/${env.FRONTEND_ARCHIVE}
+
+                        ssh -o StrictHostKeyChecking=accept-new ${params.FRONTEND_USER}@${params.FRONTEND_HOST} \\
+                          "REMOTE_APP_DIR='${params.REMOTE_APP_DIR}' FRONTEND_CONTAINER='${env.FRONTEND_CONTAINER}' FRONTEND_PORT='${params.FRONTEND_PORT}' FRONTEND_ARCHIVE='${env.FRONTEND_ARCHIVE}' bash -s" <<'REMOTE_SCRIPT'
+                            set -euo pipefail
+
+                            cd "\$REMOTE_APP_DIR"
+                            rm -rf dist
+                            mkdir -p dist
+                            tar -xzf "\$FRONTEND_ARCHIVE" -C dist
+                            rm -f "\$FRONTEND_ARCHIVE"
+
+                            docker pull nginx:alpine
+                            docker stop "\$FRONTEND_CONTAINER" || true
+                            docker rm "\$FRONTEND_CONTAINER" || true
+                            docker run -d \\
+                              --name "\$FRONTEND_CONTAINER" \\
+                              --restart always \\
+                              -p "\$FRONTEND_PORT":80 \\
+                              -v "\$REMOTE_APP_DIR/dist:/usr/share/nginx/html:ro" \\
+                              nginx:alpine
+
+                            curl -fsS "http://127.0.0.1:\$FRONTEND_PORT" >/dev/null
+                            echo "Frontend deploye et joignable localement sur la VM."
+REMOTE_SCRIPT
+                    """
+                }
+            }
+        }
+
+        stage('Public Smoke Test') {
+            steps {
+                sh "curl -fsS http://${params.FRONTEND_HOST}:${params.FRONTEND_PORT} >/dev/null"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline frontend terminee avec succes.'
+        }
+        failure {
+            echo 'Pipeline frontend en echec. Regarde le stage en rouge dans Jenkins.'
+        }
+        always {
+            sh "rm -f ${env.FRONTEND_ARCHIVE}"
+        }
+    }
+}
